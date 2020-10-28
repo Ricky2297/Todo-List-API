@@ -8,7 +8,8 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, Todo
+
 #from models import Person
 
 app = Flask(__name__)
@@ -38,6 +39,55 @@ def handle_hello():
     }
 
     return jsonify(response_body), 200
+
+@app.route('/todo/<username>', methods=['GET'])
+def get_todos(username):
+
+    todos = Todo.query.filter_by(username = username)
+    todos = list(map(lambda x: x.serialize(), todos))
+    return jsonify(todos),200
+
+@app.route('/todo/<username>', methods=['POST'])
+def post_todo(username):
+
+    body = request.get_json()
+    exists = Todo.query.filter_by(username = username, label = body['label']).first()
+    if exists is not None:
+        raise APIException('you already have this todo items', status_code = 404)
+    todo = Todo(label = body['label'], done = body['done'], username = username)
+    db.session.add(todo) 
+    db.session.commit()
+    return jsonify(todo.serialize()), 200
+
+@app.route('/todo/<int:id>', methods=['PUT'])
+def put_todo(id): 
+
+    body = request.get_json()
+    todo_item = Todo.query.get(id)
+    todo_item = todo_item.serialize()
+    print("Todo Items Here",todo_item)
+    todo_item['done']= body['done']
+    todo_item['label'] = body['label']
+    updated = todo_item 
+    db.session.commit()      
+    update_item = Todo.query.get(id)
+    update_item = update_item.serialize()
+    return jsonify(update_item),200
+    
+
+@app.route('/todo/<username>/<int:id>', methods=['DELETE'])
+def delete_todo(username,id):
+
+    todo = Todo.query.get(id)
+    if todo is None:
+        raise APIException('the todo is not exist', status_code = 400) 
+    db.session.delete(todo)
+    db.session.commit()
+    todos = Todo.query.filter_by(username = username)
+    todos = list(map(lambda x: x.serialize(), todos))
+    return jsonify(todos), 200
+
+
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':

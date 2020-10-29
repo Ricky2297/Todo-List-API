@@ -64,15 +64,13 @@ def put_todo(id):
 
     body = request.get_json()
     todo_item = Todo.query.get(id)
-    todo_item = todo_item.serialize()
     print("Todo Items Here",todo_item)
-    todo_item['done']= body['done']
-    todo_item['label'] = body['label']
-    updated = todo_item 
+    todo_item.done= body['done']
+    todo_item.label = body['label']
     db.session.commit()      
     update_item = Todo.query.get(id)
-    update_item = update_item.serialize()
-    return jsonify(update_item),200
+    # update_item = update_item.serialize()
+    return jsonify(update_item.serialize()),200
     
 
 @app.route('/todo/<username>/<int:id>', methods=['DELETE'])
